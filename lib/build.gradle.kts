@@ -8,6 +8,8 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
+    id("org.sonarqube") version "4.4.1.3373"
+    `jacoco`
 }
 
 repositories {
@@ -35,7 +37,35 @@ java {
     }
 }
 
-tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
+// Adding sonar and jacoco for coverage test
+sonar {
+    properties {
+        property("sonar.projectKey", "kennyrobert88_GraphingJava")
+        property("sonar.projectName", "GraphingJava")
+        property("sonar.organization", "krobert888")
+        property("sonar.host.url", "https://sonarcloud.io")
+
+        // Optional but recommended: use environment variable for security
+        System.getenv("SONAR_TOKEN")?.let {
+            property("sonar.token", it)
+        }
+
+        property("sonar.exclusions", "**/generated/**, **/test/**, **/constants/**")
+        property("sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml")
+    }
 }
+
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)  // Needed for SonarQube
+        csv.required.set(false)
+        html.outputLocation.set(layout.buildDirectory.dir("jacocoHtml"))
+    }
+}
+
